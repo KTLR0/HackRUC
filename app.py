@@ -81,20 +81,7 @@ def get_gemini_evaluation(score):
         print(f"Error calling Gemini API: {e}")
         return "Could not generate an AI evaluation due to an API error."
     
-# video splitting
-def extract_video_no_audio(input_path, output_path="video_no_audio.mp4"):
-    clip = mp.VideoFileClip(input_path)
-    clip_no_audio = clip.without_audio()
-    clip_no_audio.write_videofile(output_path, codec="libx264")
-    clip.close()
-    clip_no_audio.close()
-    return os.path.abspath(output_path)
-
-def extract_audio(input_path, output_path="audio_only.mp3"):
-    clip = mp.VideoFileClip(input_path)
-    clip.audio.write_audiofile(output_path)
-    clip.close()
-    return os.path.abspath(output_path)
+#video splitting
 
 
 # --- FLASK API ROUTES ---
@@ -110,43 +97,27 @@ def index():
 def analyze_video_route():
     data = request.get_json()
     if not data or 'video_url' not in data:
-        return jsonify({'error': 'video_url is required'}), 400
+        return jsonify({'error': 'video_url is required in the JSON body'}), 400
 
     video_url = data['video_url']
     video_path = None
     
     try:
-        # 1. Download original video
         video_path = download_video(video_url)
-
-        # 2. Create video-only file
-        video_no_audio_path = extract_video_no_audio(video_path)
-
-        # 3. Create audio-only file
-        audio_path = extract_audio(video_path)
-
-        # 4. Get transcript
-        # transcript = extract_transcript(video_url)
-
-        # 5. Your existing analysis
         score = analyze_video_for_faces(video_path)
         evaluation = get_gemini_evaluation(score)
-
-        return jsonify({
-            "enthusiasm_score": score,
-            "gemini_evaluation": evaluation,
-            "video_no_audio": video_no_audio_path,
-            "audio_file": audio_path,
-            # "transcript": transcript
-        })
+        
+        # CHANGED: Return the score as a number, not a string
+        return jsonify({'enthusiasm_score': score, 'gemini_evaluation': evaluation})
 
     except Exception as e:
+        print(f"An error occurred: {e}")
         return jsonify({'error': str(e)}), 500
-    
+        
     finally:
-        # Cleanup original video (we keep the split files)
         if video_path and os.path.exists(video_path):
             os.remove(video_path)
+            print(f"Cleaned up temporary file: {video_path}")
 
 
 if __name__ == '__main__':
