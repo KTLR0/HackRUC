@@ -1,0 +1,8 @@
+cmake
+Flask==3.0.3
+opencv-python==4.9.0.80
+google-generativeai
+yt-dlp==2024.7.16
+numpy
+scipy
+dlib
